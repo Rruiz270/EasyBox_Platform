@@ -13,3 +13,7 @@ export const updateQuoteStatus = async (req, res) => {
 export const deleteQuoteStatus = async (req, res) => {
   res.json({ message: `Delete quote status ${req.params.id} - coming soon` });
 };
+
+export const reorderQuoteStatuses = async (req, res) => {
+  res.json({ message: 'Reorder quote statuses - coming soon' });
+};
