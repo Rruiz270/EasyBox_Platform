@@ -13,3 +13,7 @@ export const calculateMcKeeFormula = async (req, res) => {
 export const getBoxDimensions = async (req, res) => {
   res.json({ message: 'Get box dimensions - coming soon' });
 };
+
+export const calculateBlankDimensions = async (req, res) => {
+  res.json({ message: 'Calculate blank dimensions - coming soon' });
+};
