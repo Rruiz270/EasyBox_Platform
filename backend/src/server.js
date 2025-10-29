@@ -21,6 +21,7 @@ import orcamentosRoutes from './routes/orcamentos.js';
 import desenvolvimentoRoutes from './routes/desenvolvimento.js';
 import producaoRoutes from './routes/producao.js';
 import segurancaRoutes from './routes/seguranca.js';
+import testRoutes from './routes/test.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -86,6 +87,9 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/calculations', calculationRoutes);
 app.use('/api/files', fileRoutes);
+
+// Test routes (for deployment verification)
+app.use('/api/test', testRoutes);
 
 // Main application modules
 app.use('/api/setup', setupRoutes);
