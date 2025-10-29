@@ -1,0 +1,40 @@
+{
+  "name": "easybox-platform",
+  "version": "1.0.0",
+  "description": "EasyBox Platform - Complete corrugated box industry management system for Brazil",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install", 
+    "build": "cd backend && npm install",
+    "start": "cd backend && npm start",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm run build && npm start"
+  },
+  "keywords": [
+    "corrugated",
+    "cardboard", 
+    "FEFCO",
+    "McKee",
+    "packaging",
+    "brazil",
+    "saas",
+    "multi-tenant"
+  ],
+  "author": "EasyBox Platform",
+  "license": "MIT",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
