@@ -8,10 +8,8 @@
     "npm": ">=9.0.0"
   },
   "scripts": {
-    "heroku-postbuild": "cd backend && npm install",
-    "build": "cd backend && npm install",
-    "start": "cd backend && npm start",
-    "dev": "cd backend && npm run dev"
+    "build": "echo 'Build completed'",
+    "start": "cd backend && npm start"
   },
   "keywords": [
     "corrugated",
