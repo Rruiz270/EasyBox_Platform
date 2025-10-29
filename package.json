@@ -10,7 +10,7 @@
   "scripts": {
     "install:backend": "cd backend && npm install",
     "install:frontend": "cd frontend && npm install", 
-    "build": "cd backend && npm install",
+    "build": "echo 'Skipping build - Node.js backend only'",
     "start": "cd backend && npm start",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
