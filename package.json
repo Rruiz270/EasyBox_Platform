@@ -4,7 +4,7 @@
   "description": "EasyBox Platform - Complete corrugated box industry management system for Brazil",
   "private": true,
   "engines": {
-    "node": "18.x",
+    "node": "22.x",
     "npm": ">=9.0.0"
   },
   "scripts": {
