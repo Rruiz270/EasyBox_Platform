@@ -5,11 +5,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
+let db = null;
+
+export function getDatabase() {
+  if (!db) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+    const sql = neon(process.env.DATABASE_URL);
+    db = drizzle(sql, { schema });
+  }
+  return db;
 }
 
-const sql = neon(process.env.DATABASE_URL);
-export const db = drizzle(sql, { schema });
-
-export default db;
+// For backward compatibility
+export { getDatabase as db };
+export default getDatabase;

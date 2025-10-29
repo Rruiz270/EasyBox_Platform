@@ -1,6 +1,8 @@
-import { db } from '../../database/connection.js';
+import { getDatabase } from '../../database/connection.js';
 import { clients, auditLog } from '../../database/schema.js';
 import { eq, and, desc, ilike, or } from 'drizzle-orm';
+
+const db = getDatabase;
 
 export const createClient = async (req, res) => {
   try {
