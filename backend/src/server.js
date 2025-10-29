@@ -112,9 +112,10 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+  logger.info(`🚀 Servidor rodando na porta ${PORT} - Database ACTIVE!`);
   logger.info(`📦 Sistema de Gestão da Indústria de Papelão Ondulado - Brasil`);
   logger.info(`🌐 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
 });
 
 export default app;
