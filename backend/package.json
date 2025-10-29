@@ -19,6 +19,7 @@
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
     "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5",
     "@neondatabase/serverless": "^0.7.2",
     "drizzle-orm": "^0.29.0",
     "bcryptjs": "^2.4.3",
