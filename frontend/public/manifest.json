@@ -1,0 +1,16 @@
+{
+  "name": "EasyBox Platform",
+  "short_name": "EasyBox",
+  "description": "Sistema completo para gestão da indústria de papelão ondulado no Brasil",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
