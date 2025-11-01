@@ -23,14 +23,14 @@ import {
   CreditCardIcon,
   BuildingOfficeIcon,
   CubeIcon,
-  ContactIcon,
+  PhoneIcon as ContactIcon,
   DocumentTextIcon,
   CalculatorIcon,
   ChartBarIcon,
   ClipboardDocumentListIcon,
   BeakerIcon,
   RectangleStackIcon,
-  CogWheelIcon,
+  CogIcon as CogWheelIcon,
   ListBulletIcon
 } from '@heroicons/react/24/outline';
 
