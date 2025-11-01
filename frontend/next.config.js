@@ -44,16 +44,6 @@ const nextConfig = {
       },
     ];
   },
-  // Redirects for better SEO
-  async redirects() {
-    return [
-      {
-        source: '/dashboard',
-        destination: '/dashboard/overview',
-        permanent: false,
-      },
-    ];
-  },
   // Webpack config for Three.js
   webpack: (config, { isServer }) => {
     if (!isServer) {
