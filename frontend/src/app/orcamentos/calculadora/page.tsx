@@ -1,12 +1,29 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CalculatorIcon,
   CubeIcon,
   DocumentTextIcon,
   ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
+import Modal from '@/components/ui/Modal';
+import Toast from '@/components/ui/Toast';
+import dynamic from 'next/dynamic';
+
+// Dynamically import 3D component to avoid SSR issues
+const Box3D = dynamic(() => import('@/components/3d/Box3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Carregando visualização 3D...</p>
+      </div>
+    </div>
+  )
+});
 
 export default function CalculadoraPage() {
   const [dimensions, setDimensions] = useState({
@@ -17,6 +34,20 @@ export default function CalculadoraPage() {
   
   const [quantity, setQuantity] = useState(1000);
   const [materialCost, setMaterialCost] = useState(2.50);
+  const [is3DModalOpen, setIs3DModalOpen] = useState(false);
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message?: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  
+  const router = useRouter();
 
   const calculateArea = () => {
     const l = dimensions.length / 1000; // Convert to meters
@@ -30,6 +61,52 @@ export default function CalculadoraPage() {
 
   const totalArea = calculateArea();
   const totalCost = totalArea * materialCost * quantity;
+  
+  const showToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => {
+    setToast({ isOpen: true, type, title, message });
+  };
+
+  const handle3DView = () => {
+    setIs3DModalOpen(true);
+  };
+
+  const handleMcKeeCalculation = () => {
+    // Store current dimensions in localStorage for McKee calculator
+    const mckeeData = {
+      length: dimensions.length,
+      width: dimensions.width,
+      height: dimensions.height,
+      fromCalculator: true
+    };
+    
+    localStorage.setItem('calculatorDimensions', JSON.stringify(mckeeData));
+    showToast('info', 'Redirecionando', 'Carregando calculadora McKee com suas dimensões...');
+    
+    setTimeout(() => {
+      router.push('/mckee');
+    }, 1500);
+  };
+
+  const handleCreateQuote = () => {
+    // Store data for advanced quote
+    const quoteData = {
+      length: dimensions.length,
+      width: dimensions.width,
+      height: dimensions.height,
+      quantity: quantity,
+      materialCost: materialCost,
+      totalArea: totalArea,
+      totalCost: totalCost,
+      fromCalculator: true
+    };
+    
+    localStorage.setItem('calculatorQuoteData', JSON.stringify(quoteData));
+    showToast('success', 'Redirecionando', 'Criando orçamento avançado com seus cálculos...');
+    
+    setTimeout(() => {
+      router.push('/comercial/orcamento-avancado');
+    }, 1500);
+  };
 
   return (
     <div className="space-y-6">
@@ -185,15 +262,24 @@ export default function CalculadoraPage() {
             <div className="card-content">
               <h4 className="font-medium text-gray-900 mb-3">Ações Rápidas</h4>
               <div className="space-y-2">
-                <button className="w-full btn-outline text-sm py-2">
+                <button 
+                  onClick={handle3DView}
+                  className="w-full btn-outline text-sm py-2"
+                >
                   <CubeIcon className="w-4 h-4 mr-2" />
                   Visualizar em 3D
                 </button>
-                <button className="w-full btn-outline text-sm py-2">
+                <button 
+                  onClick={handleMcKeeCalculation}
+                  className="w-full btn-outline text-sm py-2"
+                >
                   <CalculatorIcon className="w-4 h-4 mr-2" />
                   Calcular McKee
                 </button>
-                <button className="w-full btn-primary text-sm py-2">
+                <button 
+                  onClick={handleCreateQuote}
+                  className="w-full btn-primary text-sm py-2"
+                >
                   <DocumentTextIcon className="w-4 h-4 mr-2" />
                   Criar Orçamento
                 </button>
@@ -202,6 +288,78 @@ export default function CalculadoraPage() {
           </div>
         </div>
       </div>
+
+      {/* 3D Visualization Modal */}
+      <Modal 
+        isOpen={is3DModalOpen} 
+        onClose={() => setIs3DModalOpen(false)}
+        title="Visualização 3D da Caixa"
+        size="xl"
+      >
+        <div className="space-y-4">
+          <div className="mb-4 text-center">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Visualização 3D Interativa</h3>
+            <p className="text-gray-600">Use o mouse para rotacionar, zoom e navegar pela caixa</p>
+          </div>
+          
+          {/* 3D Box Component */}
+          <Box3D 
+            length={dimensions.length}
+            width={dimensions.width}
+            height={dimensions.height}
+            thickness={4}
+            fluteType="BC"
+            isOpen={false}
+          />
+          
+          {/* Control Instructions */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-2">Controles:</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+              <div>🖱️ <strong>Clique e arraste:</strong> Rotacionar</div>
+              <div>🔍 <strong>Scroll:</strong> Zoom in/out</div>
+              <div>👆 <strong>Clique direito:</strong> Mover</div>
+              <div>📱 <strong>Touch:</strong> Gestos nativos</div>
+            </div>
+          </div>
+          
+          {/* Dimensions and Cost Display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">Dimensões</h4>
+              <div className="space-y-1 text-sm text-blue-800">
+                <div>Comprimento: {dimensions.length}mm</div>
+                <div>Largura: {dimensions.width}mm</div>
+                <div>Altura: {dimensions.height}mm</div>
+                <div>Área: {totalArea.toFixed(4)}m²</div>
+              </div>
+            </div>
+            
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h4 className="font-medium text-green-900 mb-2">Custos</h4>
+              <div className="space-y-1 text-sm text-green-800">
+                <div>Quantidade: {quantity.toLocaleString()} un</div>
+                <div>Custo por unidade: R$ {(totalCost / quantity).toFixed(4)}</div>
+                <div>Custo total: R$ {totalCost.toFixed(2)}</div>
+                <div>Com margem 40%: R$ {(totalCost * 1.4).toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-center text-sm text-gray-500 border-t pt-4">
+            💡 Modelo 3D baseado nas suas dimensões de cálculo
+          </div>
+        </div>
+      </Modal>
+
+      {/* Toast */}
+      <Toast
+        isOpen={toast.isOpen}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
     </div>
   );
 }
