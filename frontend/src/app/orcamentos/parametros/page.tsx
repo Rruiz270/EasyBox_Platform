@@ -92,7 +92,7 @@ export default function ParametrosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
-  const categories = [...new Set(parameters.map(p => p.category))];
+  const categories = Array.from(new Set(parameters.map(p => p.category)));
 
   const startEdit = (parameter: Parameter) => {
     setEditingId(parameter.id);
