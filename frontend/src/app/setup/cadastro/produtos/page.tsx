@@ -12,6 +12,9 @@ import {
   CalculatorIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
+import Modal from '@/components/ui/Modal';
+import Toast from '@/components/ui/Toast';
+import { useCRUD } from '@/hooks/useCRUD';
 
 interface Product {
   id: string;

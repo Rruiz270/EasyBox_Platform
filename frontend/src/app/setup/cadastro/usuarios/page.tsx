@@ -12,6 +12,9 @@ import {
   EnvelopeIcon,
   PhoneIcon
 } from '@heroicons/react/24/outline';
+import Modal from '@/components/ui/Modal';
+import Toast from '@/components/ui/Toast';
+import { useCRUD } from '@/hooks/useCRUD';
 
 interface User {
   id: string;
@@ -62,13 +65,25 @@ const mockUsers: User[] = [
 ];
 
 export default function UsuariosPage() {
-  const [users] = useState<User[]>(mockUsers);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('todos');
 
   const roles = ['todos', 'admin', 'manager', 'operator', 'viewer'];
+  
+  const initialFormData: Partial<User> = {
+    name: '',
+    email: '',
+    phone: '',
+    role: 'viewer',
+    department: '',
+    status: 'active',
+    lastLogin: new Date().toISOString().split('T')[0],
+    createdAt: new Date().toISOString().split('T')[0]
+  };
+  
+  const crud = useCRUD<User>(mockUsers, initialFormData);
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = crud.items.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.department.toLowerCase().includes(searchTerm.toLowerCase());
@@ -113,10 +128,23 @@ export default function UsuariosPage() {
           </p>
         </div>
         
-        <button className="btn-primary">
-          <PlusIcon className="w-4 h-4 mr-2" />
-          Novo Usuário
-        </button>
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => crud.exportToCSV(
+              filteredUsers, 
+              'usuarios', 
+              (user) => `${user.name},${user.email},${user.phone},${getRoleText(user.role)},${user.department},${user.status === 'active' ? 'Ativo' : 'Inativo'},${user.lastLogin}`,
+              'Nome,Email,Telefone,Perfil,Departamento,Status,Último Acesso'
+            )}
+            className="btn-outline"
+          >
+            📊 Exportar Dados
+          </button>
+          <button onClick={crud.handleCreate} className="btn-primary">
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Novo Usuário
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -126,7 +154,7 @@ export default function UsuariosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total de Usuários</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{crud.items.length}</p>
               </div>
               <UserIcon className="w-8 h-8 text-blue-600" />
             </div>
@@ -139,7 +167,7 @@ export default function UsuariosPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Usuários Ativos</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.status === 'active').length}
+                  {crud.items.filter(u => u.status === 'active').length}
                 </p>
               </div>
               <ShieldCheckIcon className="w-8 h-8 text-green-600" />
@@ -153,7 +181,7 @@ export default function UsuariosPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Administradores</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.role === 'admin').length}
+                  {crud.items.filter(u => u.role === 'admin').length}
                 </p>
               </div>
               <div className="p-2 rounded-lg bg-purple-100">
@@ -169,7 +197,7 @@ export default function UsuariosPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Departamentos</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {new Set(users.map(u => u.department)).size}
+                  {Array.from(new Set(crud.items.map(u => u.department))).length}
                 </p>
               </div>
               <div className="p-2 rounded-lg bg-orange-100">
@@ -295,13 +323,25 @@ export default function UsuariosPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
-                        <button className="p-1 text-gray-400 hover:text-blue-600">
+                        <button 
+                          onClick={() => crud.handleView(user)}
+                          className="p-1 text-gray-400 hover:text-blue-600"
+                          title="Visualizar"
+                        >
                           <EyeIcon className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-green-600">
+                        <button 
+                          onClick={() => crud.handleEdit(user)}
+                          className="p-1 text-gray-400 hover:text-green-600"
+                          title="Editar"
+                        >
                           <PencilIcon className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-red-600">
+                        <button 
+                          onClick={() => crud.handleDelete(user, (u) => u.name)}
+                          className="p-1 text-gray-400 hover:text-red-600"
+                          title="Excluir"
+                        >
                           <TrashIcon className="w-4 h-4" />
                         </button>
                       </div>
@@ -324,6 +364,298 @@ export default function UsuariosPage() {
           </p>
         </div>
       )}
+
+      {/* Create Modal */}
+      <Modal 
+        isOpen={crud.isCreateModalOpen} 
+        onClose={() => crud.setIsCreateModalOpen(false)}
+        title="Novo Usuário"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome Completo *
+              </label>
+              <input
+                type="text"
+                value={crud.formData.name || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: João Silva"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={crud.formData.email || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: joao@empresa.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone
+              </label>
+              <input
+                type="text"
+                value={crud.formData.phone || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: (11) 99999-1111"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Perfil de Acesso *
+              </label>
+              <select
+                value={crud.formData.role || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, role: e.target.value as User['role'] }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {roles.filter(r => r !== 'todos').map(role => (
+                  <option key={role} value={role}>{getRoleText(role)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Departamento *
+              </label>
+              <input
+                type="text"
+                value={crud.formData.department || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, department: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: TI, Vendas, Produção"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={crud.formData.status || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, status: e.target.value as User['status'] }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button 
+              onClick={() => crud.setIsCreateModalOpen(false)}
+              className="btn-outline"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={() => {
+                const validate = () => {
+                  if (!crud.formData.name || !crud.formData.email || !crud.formData.role || !crud.formData.department) {
+                    crud.showToast('error', 'Campos obrigatórios', 'Preencha todos os campos obrigatórios.');
+                    return false;
+                  }
+                  return true;
+                };
+                crud.handleSubmitCreate(() => (crud.items.length + 1).toString(), validate);
+              }}
+              className="btn-primary"
+            >
+              Criar Usuário
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal 
+        isOpen={crud.isEditModalOpen} 
+        onClose={() => crud.setIsEditModalOpen(false)}
+        title="Editar Usuário"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome Completo *
+              </label>
+              <input
+                type="text"
+                value={crud.formData.name || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={crud.formData.email || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone
+              </label>
+              <input
+                type="text"
+                value={crud.formData.phone || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Perfil de Acesso *
+              </label>
+              <select
+                value={crud.formData.role || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, role: e.target.value as User['role'] }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {roles.filter(r => r !== 'todos').map(role => (
+                  <option key={role} value={role}>{getRoleText(role)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Departamento *
+              </label>
+              <input
+                type="text"
+                value={crud.formData.department || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, department: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={crud.formData.status || ''}
+                onChange={(e) => crud.setFormData(prev => ({ ...prev, status: e.target.value as User['status'] }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button 
+              onClick={() => crud.setIsEditModalOpen(false)}
+              className="btn-outline"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={() => {
+                const validate = () => {
+                  if (!crud.formData.name || !crud.formData.email || !crud.formData.role || !crud.formData.department) {
+                    crud.showToast('error', 'Campos obrigatórios', 'Preencha todos os campos obrigatórios.');
+                    return false;
+                  }
+                  return true;
+                };
+                crud.handleSubmitEdit(validate);
+              }}
+              className="btn-primary"
+            >
+              Salvar Alterações
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal 
+        isOpen={crud.isViewModalOpen} 
+        onClose={() => crud.setIsViewModalOpen(false)}
+        title="Detalhes do Usuário"
+        size="lg"
+      >
+        {crud.selectedItem && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Informações Pessoais</h4>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm text-gray-500">Nome:</span>
+                    <p className="font-medium">{crud.selectedItem.name}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Email:</span>
+                    <p className="font-medium">{crud.selectedItem.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Telefone:</span>
+                    <p className="font-medium">{crud.selectedItem.phone}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Departamento:</span>
+                    <p className="font-medium">{crud.selectedItem.department}</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Informações do Sistema</h4>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm text-gray-500">Perfil:</span>
+                    <p className="font-medium">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(crud.selectedItem.role)}`}>
+                        {getRoleText(crud.selectedItem.role)}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Status:</span>
+                    <p className="font-medium">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(crud.selectedItem.status)}`}>
+                        {crud.selectedItem.status === 'active' ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Último Acesso:</span>
+                    <p className="font-medium">{crud.selectedItem.lastLogin}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Data de Criação:</span>
+                    <p className="font-medium">{crud.selectedItem.createdAt}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Toast */}
+      <Toast
+        isOpen={crud.toast.isOpen}
+        onClose={() => crud.setToast(prev => ({ ...prev, isOpen: false }))}
+        type={crud.toast.type}
+        title={crud.toast.title}
+        message={crud.toast.message}
+      />
     </div>
   );
 }
