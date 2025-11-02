@@ -31,7 +31,10 @@ import {
   BeakerIcon,
   RectangleStackIcon,
   CogIcon as CogWheelIcon,
-  ListBulletIcon
+  ListBulletIcon,
+  BriefcaseIcon,
+  ClipboardDocumentCheckIcon,
+  ShoppingCartIcon
 } from '@heroicons/react/24/outline';
 
 interface MenuItem {
@@ -86,6 +89,15 @@ const navigationItems: MenuItem[] = [
     ]
   },
   {
+    id: 'comercial',
+    title: 'Comercial',
+    icon: BriefcaseIcon,
+    children: [
+      { id: 'estudo-demanda', title: 'Estudo de Demanda', icon: ClipboardDocumentCheckIcon, href: '/comercial/estudo-demanda' },
+      { id: 'orcamento-avancado', title: 'Orçamento Avançado', icon: CalculatorIcon, href: '/comercial/orcamento-avancado' }
+    ]
+  },
+  {
     id: 'orcamentos',
     title: 'Orçamentos',
     icon: DocumentTextIcon,
@@ -94,6 +106,14 @@ const navigationItems: MenuItem[] = [
       { id: 'orcamentos-parametros', title: 'Parâmetros', icon: CogIcon, href: '/orcamentos/parametros' },
       { id: 'orcamentos-status', title: 'Status', icon: ChartBarIcon, href: '/orcamentos/status' },
       { id: 'orcamentos-calculadora', title: 'Calculadora', icon: CalculatorIcon, href: '/orcamentos/calculadora' }
+    ]
+  },
+  {
+    id: 'compras',
+    title: 'Compras',
+    icon: ShoppingCartIcon,
+    children: [
+      { id: 'ordem-compra', title: 'Ordem de Compra', icon: DocumentTextIcon, href: '/compras/ordem-compra' }
     ]
   },
   {
@@ -131,7 +151,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isCollapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['setup', 'orcamentos', 'desenvolvimento']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['setup', 'comercial', 'orcamentos', 'compras', 'desenvolvimento']);
 
   const toggleExpanded = (itemId: string) => {
     setExpandedItems(prev =>
