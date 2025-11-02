@@ -170,46 +170,62 @@ export default function Sidebar({ isCollapsed = false, onToggle }: SidebarProps)
     }
 
     return (
-      <div key={item.id}>
-        <button
-          onClick={() => {
-            if (hasChildren) {
-              toggleExpanded(item.id);
-            } else if (item.href) {
-              // Navigation will be handled by Link component
-            }
-          }}
-          className={`
-            w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors
-            ${isActive 
-              ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
-              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }
-          `}
-          style={{ paddingLeft }}
-        >
-          <div className="flex items-center">
-            <item.icon 
-              className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-700' : 'text-gray-400'}`} 
-            />
-            {!isCollapsed && (
-              <span className="truncate">{item.title}</span>
+      <div key={item.id} className="relative">
+        {item.href ? (
+          <Link
+            href={item.href}
+            className={`
+              w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors
+              ${isActive 
+                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }
+            `}
+            style={{ paddingLeft }}
+          >
+            <div className="flex items-center">
+              <item.icon 
+                className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-700' : 'text-gray-400'}`} 
+              />
+              {!isCollapsed && (
+                <span className="truncate">{item.title}</span>
+              )}
+            </div>
+          </Link>
+        ) : (
+          <button
+            onClick={() => {
+              if (hasChildren) {
+                toggleExpanded(item.id);
+              }
+            }}
+            className={`
+              w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors
+              ${isActive 
+                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }
+            `}
+            style={{ paddingLeft }}
+          >
+            <div className="flex items-center">
+              <item.icon 
+                className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-700' : 'text-gray-400'}`} 
+              />
+              {!isCollapsed && (
+                <span className="truncate">{item.title}</span>
+              )}
+            </div>
+            
+            {!isCollapsed && hasChildren && (
+              <motion.div
+                animate={{ rotate: isExpanded ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+              </motion.div>
             )}
-          </div>
-          
-          {!isCollapsed && hasChildren && (
-            <motion.div
-              animate={{ rotate: isExpanded ? 90 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronRightIcon className="h-4 w-4 text-gray-400" />
-            </motion.div>
-          )}
-        </button>
-
-        {/* Render as Link if it has href */}
-        {item.href && (
-          <Link href={item.href} className="absolute inset-0 z-10" />
+          </button>
         )}
 
         {/* Children */}
