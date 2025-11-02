@@ -22,7 +22,7 @@ function CardboardBox({
   fluteType = 'BC',
   isOpen = false 
 }: Box3DProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
 
   // Convert mm to scene units (scale down by 100 for better visualization)
@@ -33,8 +33,8 @@ function CardboardBox({
 
   // Rotation animation
   useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.3;
+    if (groupRef.current) {
+      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.3;
     }
   });
 
@@ -52,7 +52,7 @@ function CardboardBox({
   });
 
   return (
-    <group ref={meshRef}>
+    <group ref={groupRef}>
       {/* Main box structure */}
       <group>
         {/* Bottom */}
