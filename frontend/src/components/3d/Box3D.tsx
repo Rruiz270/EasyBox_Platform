@@ -46,10 +46,8 @@ function CardboardBox({
     shininess: 10 // Low shininess for matte cardboard look
   });
 
-  const edgeMaterial = new THREE.LineBasicMaterial({
-    color: '#8B4513', // Darker brown for edges
-    linewidth: 2
-  });
+  // Edge color for wireframe
+  const edgeColor = '#8B4513';
 
   return (
     <group ref={groupRef}>
@@ -61,7 +59,7 @@ function CardboardBox({
           position={[0, -scaleH/2 + wallThickness/2, 0]}
           material={cardboardMaterial}
         >
-          <Edges material={edgeMaterial} />
+          <Edges color={edgeColor} />
         </Box>
 
         {/* Front wall */}
@@ -70,7 +68,7 @@ function CardboardBox({
           position={[0, 0, scaleW/2 - wallThickness/2]}
           material={cardboardMaterial}
         >
-          <Edges material={edgeMaterial} />
+          <Edges color={edgeColor} />
         </Box>
 
         {/* Back wall */}
@@ -79,7 +77,7 @@ function CardboardBox({
           position={[0, 0, -scaleW/2 + wallThickness/2]}
           material={cardboardMaterial}
         >
-          <Edges material={edgeMaterial} />
+          <Edges color={edgeColor} />
         </Box>
 
         {/* Left wall */}
@@ -88,7 +86,7 @@ function CardboardBox({
           position={[-scaleL/2 + wallThickness/2, 0, 0]}
           material={cardboardMaterial}
         >
-          <Edges material={edgeMaterial} />
+          <Edges color={edgeColor} />
         </Box>
 
         {/* Right wall */}
@@ -97,7 +95,7 @@ function CardboardBox({
           position={[scaleL/2 - wallThickness/2, 0, 0]}
           material={cardboardMaterial}
         >
-          <Edges material={edgeMaterial} />
+          <Edges color={edgeColor} />
         </Box>
 
         {/* Top flaps - only show if box is open */}
@@ -110,7 +108,7 @@ function CardboardBox({
               rotation={[Math.PI * 0.3, 0, 0]}
               material={cardboardMaterial}
             >
-              <Edges material={edgeMaterial} />
+              <Edges color={edgeColor} />
             </Box>
 
             {/* Back flap */}
@@ -120,7 +118,7 @@ function CardboardBox({
               rotation={[-Math.PI * 0.3, 0, 0]}
               material={cardboardMaterial}
             >
-              <Edges material={edgeMaterial} />
+              <Edges color={edgeColor} />
             </Box>
 
             {/* Side flaps */}
@@ -130,7 +128,7 @@ function CardboardBox({
               rotation={[0, 0, Math.PI * 0.3]}
               material={cardboardMaterial}
             >
-              <Edges material={edgeMaterial} />
+              <Edges color={edgeColor} />
             </Box>
 
             <Box 
@@ -139,7 +137,7 @@ function CardboardBox({
               rotation={[0, 0, -Math.PI * 0.3]}
               material={cardboardMaterial}
             >
-              <Edges material={edgeMaterial} />
+              <Edges color={edgeColor} />
             </Box>
           </>
         )}
@@ -151,7 +149,7 @@ function CardboardBox({
             position={[0, scaleH/2 - wallThickness/2, 0]}
             material={cardboardMaterial}
           >
-            <Edges material={edgeMaterial} />
+            <Edges color={edgeColor} />
           </Box>
         )}
       </group>
