@@ -12,6 +12,8 @@ import {
   PhoneIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline';
+import Modal from '@/components/ui/Modal';
+import Toast from '@/components/ui/Toast';
 
 interface Client {
   id: string;
@@ -82,11 +84,136 @@ const mockClients: Client[] = [
 ];
 
 export default function ClientesPage() {
-  const [clients] = useState<Client[]>(mockClients);
+  const [clients, setClients] = useState<Client[]>(mockClients);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSegment, setSelectedSegment] = useState('todos');
+  
+  // Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  
+  // Toast states
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message?: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+
+  // Form state
+  const [formData, setFormData] = useState<Partial<Client>>({
+    name: '',
+    companyName: '',
+    cnpj: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: 'SP',
+    segment: 'E-commerce',
+    status: 'active',
+    totalOrders: 0,
+    totalValue: 0,
+    lastOrder: new Date().toISOString().split('T')[0]
+  });
 
   const segments = ['todos', 'E-commerce', 'Varejo', 'Industrial', 'Atacado'];
+
+  // Handler functions
+  const showToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => {
+    setToast({ isOpen: true, type, title, message });
+  };
+
+  const handleCreateClient = () => {
+    setFormData({
+      name: '',
+      companyName: '',
+      cnpj: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: 'SP',
+      segment: 'E-commerce',
+      status: 'active',
+      totalOrders: 0,
+      totalValue: 0,
+      lastOrder: new Date().toISOString().split('T')[0]
+    });
+    setIsCreateModalOpen(true);
+  };
+
+  const handleEditClient = (client: Client) => {
+    setSelectedClient(client);
+    setFormData(client);
+    setIsEditModalOpen(true);
+  };
+
+  const handleViewClient = (client: Client) => {
+    setSelectedClient(client);
+    setIsViewModalOpen(true);
+  };
+
+  const handleDeleteClient = (client: Client) => {
+    if (confirm(`Tem certeza que deseja excluir o cliente "${client.name}"?`)) {
+      setClients(prev => prev.filter(c => c.id !== client.id));
+      showToast('success', 'Cliente excluído', `${client.name} foi removido com sucesso.`);
+    }
+  };
+
+  const handleSubmitCreate = () => {
+    if (!formData.name || !formData.companyName || !formData.cnpj) {
+      showToast('error', 'Campos obrigatórios', 'Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const newClient: Client = {
+      ...formData as Client,
+      id: (clients.length + 1).toString()
+    };
+
+    setClients(prev => [...prev, newClient]);
+    setIsCreateModalOpen(false);
+    showToast('success', 'Cliente criado', `${newClient.name} foi criado com sucesso.`);
+  };
+
+  const handleSubmitEdit = () => {
+    if (!formData.name || !formData.companyName || !formData.cnpj || !selectedClient) {
+      showToast('error', 'Campos obrigatórios', 'Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    setClients(prev => prev.map(c => 
+      c.id === selectedClient.id ? { ...formData as Client, id: selectedClient.id } : c
+    ));
+    setIsEditModalOpen(false);
+    showToast('success', 'Cliente atualizado', `${formData.name} foi atualizado com sucesso.`);
+  };
+
+  const handleExportData = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Nome,Empresa,CNPJ,Email,Telefone,Cidade,Estado,Segmento,Status\n"
+      + filteredClients.map(client => 
+          `${client.name},${client.companyName},${client.cnpj},${client.email},${client.phone},${client.city},${client.state},${client.segment},${client.status}`
+        ).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "clientes.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('success', 'Dados exportados', 'Lista de clientes exportada com sucesso.');
+  };
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,10 +247,15 @@ export default function ClientesPage() {
           </p>
         </div>
         
-        <button className="btn-primary">
-          <PlusIcon className="w-4 h-4 mr-2" />
-          Novo Cliente
-        </button>
+        <div className="flex space-x-3">
+          <button onClick={handleExportData} className="btn-outline">
+            📊 Exportar Dados
+          </button>
+          <button onClick={handleCreateClient} className="btn-primary">
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Novo Cliente
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -299,13 +431,25 @@ export default function ClientesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
-                        <button className="p-1 text-gray-400 hover:text-blue-600">
+                        <button 
+                          onClick={() => handleViewClient(client)}
+                          className="p-1 text-gray-400 hover:text-blue-600"
+                          title="Visualizar"
+                        >
                           <EyeIcon className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-green-600">
+                        <button 
+                          onClick={() => handleEditClient(client)}
+                          className="p-1 text-gray-400 hover:text-green-600"
+                          title="Editar"
+                        >
                           <PencilIcon className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-red-600">
+                        <button 
+                          onClick={() => handleDeleteClient(client)}
+                          className="p-1 text-gray-400 hover:text-red-600"
+                          title="Excluir"
+                        >
                           <TrashIcon className="w-4 h-4" />
                         </button>
                       </div>
@@ -328,6 +472,326 @@ export default function ClientesPage() {
           </p>
         </div>
       )}
+
+      {/* Create Modal */}
+      <Modal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Novo Cliente"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome do Responsável *
+              </label>
+              <input
+                type="text"
+                value={formData.name || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: João Silva"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome da Empresa *
+              </label>
+              <input
+                type="text"
+                value={formData.companyName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: ACME Distribuidora Ltda"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                CNPJ *
+              </label>
+              <input
+                type="text"
+                value={formData.cnpj || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: 12.345.678/0001-90"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: contato@empresa.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone
+              </label>
+              <input
+                type="text"
+                value={formData.phone || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: (11) 99999-8888"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Segmento
+              </label>
+              <select
+                value={formData.segment || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, segment: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {segments.filter(s => s !== 'todos').map(segment => (
+                  <option key={segment} value={segment}>{segment}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cidade
+              </label>
+              <input
+                type="text"
+                value={formData.city || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: São Paulo"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado
+              </label>
+              <select
+                value={formData.state || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="SP">São Paulo</option>
+                <option value="RJ">Rio de Janeiro</option>
+                <option value="MG">Minas Gerais</option>
+                <option value="RS">Rio Grande do Sul</option>
+                <option value="PR">Paraná</option>
+                <option value="SC">Santa Catarina</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Endereço
+            </label>
+            <input
+              type="text"
+              value={formData.address || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ex: Rua das Flores, 123"
+            />
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button 
+              onClick={() => setIsCreateModalOpen(false)}
+              className="btn-outline"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={handleSubmitCreate}
+              className="btn-primary"
+            >
+              Criar Cliente
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)}
+        title="Editar Cliente"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome do Responsável *
+              </label>
+              <input
+                type="text"
+                value={formData.name || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome da Empresa *
+              </label>
+              <input
+                type="text"
+                value={formData.companyName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                CNPJ *
+              </label>
+              <input
+                type="text"
+                value={formData.cnpj || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone
+              </label>
+              <input
+                type="text"
+                value={formData.phone || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={formData.status || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button 
+              onClick={() => setIsEditModalOpen(false)}
+              className="btn-outline"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={handleSubmitEdit}
+              className="btn-primary"
+            >
+              Salvar Alterações
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal 
+        isOpen={isViewModalOpen} 
+        onClose={() => setIsViewModalOpen(false)}
+        title="Detalhes do Cliente"
+        size="lg"
+      >
+        {selectedClient && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Informações Básicas</h4>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm text-gray-500">Nome:</span>
+                    <p className="font-medium">{selectedClient.name}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Empresa:</span>
+                    <p className="font-medium">{selectedClient.companyName}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">CNPJ:</span>
+                    <p className="font-medium">{selectedClient.cnpj}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Segmento:</span>
+                    <p className="font-medium">{selectedClient.segment}</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Contato & Localização</h4>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm text-gray-500">Email:</span>
+                    <p className="font-medium">{selectedClient.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Telefone:</span>
+                    <p className="font-medium">{selectedClient.phone}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Endereço:</span>
+                    <p className="font-medium">{selectedClient.address}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Cidade/Estado:</span>
+                    <p className="font-medium">{selectedClient.city}, {selectedClient.state}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">Histórico Comercial</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">{selectedClient.totalOrders}</p>
+                  <p className="text-sm text-gray-600">Total de Pedidos</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedClient.totalValue)}</p>
+                  <p className="text-sm text-gray-600">Faturamento Total</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-purple-600">{selectedClient.lastOrder}</p>
+                  <p className="text-sm text-gray-600">Último Pedido</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Toast */}
+      <Toast
+        isOpen={toast.isOpen}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
     </div>
   );
 }
