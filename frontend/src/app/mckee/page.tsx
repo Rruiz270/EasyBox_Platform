@@ -1,0 +1,436 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+  CalculatorIcon,
+  InformationCircleIcon,
+  ChartBarIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  DocumentTextIcon,
+  CubeIcon
+} from '@heroicons/react/24/outline';
+
+interface McKeeInputs {
+  length: number;
+  width: number;
+  height: number;
+  paperWeight: number;
+  fluteType: 'BC' | 'EB' | 'ECT32' | 'ECT44';
+  humidity: number;
+  temperature: number;
+  storageTime: number;
+  loadType: 'static' | 'dynamic' | 'stacking';
+  safetyFactor: number;
+}
+
+interface McKeeResults {
+  ect: number;
+  bct: number;
+  stackingStrength: number;
+  compressionStrength: number;
+  safetyMargin: number;
+  recommendation: string;
+  status: 'safe' | 'warning' | 'danger';
+}
+
+const fluteTypes = {
+  'BC': { thickness: 6.0, ect: 32, description: 'BC - Dupla face (padrão)' },
+  'EB': { thickness: 4.0, ect: 26, description: 'EB - Dupla face (fino)' },
+  'ECT32': { thickness: 4.0, ect: 32, description: 'ECT32 - Alta resistência' },
+  'ECT44': { thickness: 6.0, ect: 44, description: 'ECT44 - Extra resistente' }
+};
+
+export default function McKeePage() {
+  const [inputs, setInputs] = useState<McKeeInputs>({
+    length: 400,
+    width: 300,
+    height: 250,
+    paperWeight: 125,
+    fluteType: 'BC',
+    humidity: 65,
+    temperature: 23,
+    storageTime: 30,
+    loadType: 'stacking',
+    safetyFactor: 2.5
+  });
+
+  const [results, setResults] = useState<McKeeResults | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  const calculateMcKee = () => {
+    setIsCalculating(true);
+    
+    // Simulate calculation delay
+    setTimeout(() => {
+      const fluteData = fluteTypes[inputs.fluteType];
+      
+      // McKee Formula calculations (simplified)
+      const perimeter = 2 * (inputs.length + inputs.width);
+      const area = inputs.length * inputs.width;
+      
+      // Environmental factors
+      const humidityFactor = inputs.humidity > 70 ? 0.85 : inputs.humidity > 50 ? 0.95 : 1.0;
+      const tempFactor = inputs.temperature > 30 ? 0.9 : 1.0;
+      const timeFactor = inputs.storageTime > 60 ? 0.8 : inputs.storageTime > 30 ? 0.9 : 1.0;
+      
+      // Load type multiplier
+      const loadMultiplier = inputs.loadType === 'dynamic' ? 1.3 : inputs.loadType === 'stacking' ? 1.5 : 1.0;
+      
+      // Base calculations
+      const baseECT = fluteData.ect * (inputs.paperWeight / 125);
+      const adjustedECT = baseECT * humidityFactor * tempFactor * timeFactor;
+      
+      // BCT calculation using McKee formula
+      const bct = adjustedECT * Math.pow(perimeter, 1.5) * Math.sqrt(fluteData.thickness);
+      
+      // Stacking strength
+      const stackingStrength = bct * loadMultiplier;
+      
+      // Compression strength
+      const compressionStrength = stackingStrength / inputs.safetyFactor;
+      
+      // Safety margin
+      const safetyMargin = (compressionStrength / (stackingStrength * 0.7)) * 100;
+      
+      // Status determination
+      let status: 'safe' | 'warning' | 'danger';
+      let recommendation: string;
+      
+      if (safetyMargin >= 100) {
+        status = 'safe';
+        recommendation = 'Caixa adequada para o uso pretendido. Boa resistência e margem de segurança.';
+      } else if (safetyMargin >= 70) {
+        status = 'warning';
+        recommendation = 'Caixa com resistência limitada. Considere aumentar a gramatura ou mudar o tipo de flauta.';
+      } else {
+        status = 'danger';
+        recommendation = 'Caixa inadequada para o uso. Necessário redesign com materiais mais resistentes.';
+      }
+      
+      setResults({
+        ect: Math.round(adjustedECT * 100) / 100,
+        bct: Math.round(bct),
+        stackingStrength: Math.round(stackingStrength),
+        compressionStrength: Math.round(compressionStrength),
+        safetyMargin: Math.round(safetyMargin * 100) / 100,
+        recommendation,
+        status
+      });
+      
+      setIsCalculating(false);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    if (inputs.length > 0 && inputs.width > 0 && inputs.height > 0) {
+      calculateMcKee();
+    }
+  }, [inputs]);
+
+  const handleInputChange = (field: keyof McKeeInputs, value: any) => {
+    setInputs(prev => ({ ...prev, [field]: value }));
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'safe': return 'text-green-700 bg-green-100 border-green-200';
+      case 'warning': return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+      case 'danger': return 'text-red-700 bg-red-100 border-red-200';
+      default: return 'text-gray-700 bg-gray-100 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'safe': return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
+      case 'warning': return <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />;
+      case 'danger': return <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />;
+      default: return <InformationCircleIcon className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Calculadora McKee</h1>
+          <p className="text-gray-600 mt-1">
+            Cálculo de resistência à compressão para caixas de papelão ondulado
+          </p>
+        </div>
+        
+        <div className="flex space-x-3">
+          <button className="btn-outline">
+            <DocumentTextIcon className="w-4 h-4 mr-2" />
+            Gerar Relatório
+          </button>
+          <button 
+            onClick={calculateMcKee}
+            disabled={isCalculating}
+            className="btn-primary"
+          >
+            <CalculatorIcon className="w-4 h-4 mr-2" />
+            {isCalculating ? 'Calculando...' : 'Recalcular'}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Input Parameters */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Dimensions */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Dimensões da Caixa</h3>
+              <p className="card-description">Medidas internas em milímetros</p>
+            </div>
+            <div className="card-content">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Comprimento (mm)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.length}
+                    onChange={(e) => handleInputChange('length', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="50"
+                    max="2000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Largura (mm)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.width}
+                    onChange={(e) => handleInputChange('width', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="50"
+                    max="2000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Altura (mm)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.height}
+                    onChange={(e) => handleInputChange('height', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="20"
+                    max="1000"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Material Properties */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Propriedades do Material</h3>
+              <p className="card-description">Especificações do papelão ondulado</p>
+            </div>
+            <div className="card-content">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gramatura (g/m²)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.paperWeight}
+                    onChange={(e) => handleInputChange('paperWeight', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="80"
+                    max="400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Flauta
+                  </label>
+                  <select
+                    value={inputs.fluteType}
+                    onChange={(e) => handleInputChange('fluteType', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Object.entries(fluteTypes).map(([key, value]) => (
+                      <option key={key} value={key}>{value.description}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Environmental Conditions */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Condições Ambientais</h3>
+              <p className="card-description">Fatores que afetam a resistência</p>
+            </div>
+            <div className="card-content">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Umidade Relativa (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.humidity}
+                    onChange={(e) => handleInputChange('humidity', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="30"
+                    max="95"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Temperatura (°C)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.temperature}
+                    onChange={(e) => handleInputChange('temperature', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="5"
+                    max="50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tempo de Armazenamento (dias)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputs.storageTime}
+                    onChange={(e) => handleInputChange('storageTime', Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                    max="365"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Carga
+                  </label>
+                  <select
+                    value={inputs.loadType}
+                    onChange={(e) => handleInputChange('loadType', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="static">Estática</option>
+                    <option value="dynamic">Dinâmica</option>
+                    <option value="stacking">Empilhamento</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="space-y-6">
+          {results && (
+            <>
+              {/* Status Card */}
+              <div className={`card border-2 ${getStatusColor(results.status)}`}>
+                <div className="card-content">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Status da Análise</h3>
+                    {getStatusIcon(results.status)}
+                  </div>
+                  
+                  <div className="text-sm leading-relaxed">
+                    {results.recommendation}
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-current border-opacity-20">
+                    <div className="text-sm font-medium">
+                      Margem de Segurança: {results.safetyMargin}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Results Details */}
+              <div className="card">
+                <div className="card-header">
+                  <h3 className="card-title">Resultados do Cálculo</h3>
+                  <p className="card-description">Valores segundo fórmula McKee</p>
+                </div>
+                <div className="card-content">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-sm font-medium text-gray-600">ECT Ajustado:</span>
+                      <span className="font-semibold">{results.ect} N⋅m/m</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-sm font-medium text-gray-600">BCT:</span>
+                      <span className="font-semibold">{results.bct} N</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-sm font-medium text-gray-600">Resistência Empilhamento:</span>
+                      <span className="font-semibold">{results.stackingStrength} N</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-sm font-medium text-gray-600">Resistência Compressão:</span>
+                      <span className="font-semibold">{results.compressionStrength} N</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-600">Fator de Segurança:</span>
+                      <span className="font-semibold">{inputs.safetyFactor}x</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="card">
+                <div className="card-content">
+                  <h4 className="font-medium text-gray-900 mb-3">Ações Rápidas</h4>
+                  <div className="space-y-2">
+                    <button className="w-full btn-outline text-sm py-2">
+                      <CubeIcon className="w-4 h-4 mr-2" />
+                      Ver em 3D
+                    </button>
+                    <button className="w-full btn-outline text-sm py-2">
+                      <DocumentTextIcon className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </button>
+                    <button className="w-full btn-primary text-sm py-2">
+                      <ChartBarIcon className="w-4 h-4 mr-2" />
+                      Criar Cotação
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {isCalculating && (
+            <div className="card">
+              <div className="card-content">
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">Calculando resistência...</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

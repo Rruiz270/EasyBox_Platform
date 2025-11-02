@@ -50,6 +50,18 @@ const navigationItems: MenuItem[] = [
     href: '/dashboard'
   },
   {
+    id: 'fefco',
+    title: 'Catálogo FEFCO',
+    icon: CubeIcon,
+    href: '/fefco'
+  },
+  {
+    id: 'mckee',
+    title: 'Calculadora McKee',
+    icon: CalculatorIcon,
+    href: '/mckee'
+  },
+  {
     id: 'setup',
     title: 'SETUP',
     icon: CogIcon,
