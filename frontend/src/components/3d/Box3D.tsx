@@ -41,10 +41,9 @@ function CardboardBox({
   // Material for cardboard - realistic brown cardboard texture
   const cardboardMaterial = new THREE.MeshPhongMaterial({
     color: '#D2B48C', // Light brown cardboard color
-    roughness: 0.8,
-    metalness: 0.1,
     transparent: true,
-    opacity: 0.9
+    opacity: 0.9,
+    shininess: 10 // Low shininess for matte cardboard look
   });
 
   const edgeMaterial = new THREE.LineBasicMaterial({
