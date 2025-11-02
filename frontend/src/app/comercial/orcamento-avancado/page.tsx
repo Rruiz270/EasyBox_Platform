@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PlusIcon,
   CalculatorIcon,
@@ -86,6 +86,37 @@ const mockQuotes: AdvancedQuote[] = [
 export default function OrcamentoAvancadoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  
+  // Check for McKee data from localStorage
+  useEffect(() => {
+    const mckeeData = localStorage.getItem('mckeeQuoteData');
+    if (mckeeData) {
+      try {
+        const data = JSON.parse(mckeeData);
+        crud.setFormData(prev => ({
+          ...prev,
+          length: data.length,
+          width: data.width,
+          height: data.height,
+          corrugatedType: data.corrugatedType,
+          gramatura: data.gramatura,
+          resistanceLevel: data.resistanceLevel,
+          clientName: 'Cliente McKee'
+        }));
+        
+        // Clear the localStorage data
+        localStorage.removeItem('mckeeQuoteData');
+        
+        // Auto-open create modal
+        crud.setIsCreateModalOpen(true);
+        
+        // Show success message
+        crud.showToast('info', 'Dados McKee carregados', 'Orçamento pré-preenchido com dados do cálculo McKee.');
+      } catch (error) {
+        console.error('Error parsing McKee data:', error);
+      }
+    }
+  }, []);
 
   const initialFormData: Partial<AdvancedQuote> = {
     corrugatedType: 'BC',

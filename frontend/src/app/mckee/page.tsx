@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CalculatorIcon,
   InformationCircleIcon,
@@ -8,8 +9,11 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   DocumentTextIcon,
-  CubeIcon
+  CubeIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
+import Modal from '@/components/ui/Modal';
+import Toast from '@/components/ui/Toast';
 
 interface McKeeInputs {
   length: number;
@@ -57,6 +61,20 @@ export default function McKeePage() {
 
   const [results, setResults] = useState<McKeeResults | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [is3DModalOpen, setIs3DModalOpen] = useState(false);
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message?: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  
+  const router = useRouter();
 
   const calculateMcKee = () => {
     setIsCalculating(true);
@@ -148,6 +166,91 @@ export default function McKeePage() {
       case 'danger': return <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />;
       default: return <InformationCircleIcon className="w-5 h-5 text-gray-500" />;
     }
+  };
+
+  const showToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => {
+    setToast({ isOpen: true, type, title, message });
+  };
+
+  const handle3DView = () => {
+    setIs3DModalOpen(true);
+  };
+
+  const handleExportPDF = () => {
+    if (!results) {
+      showToast('warning', 'Cálculo necessário', 'Execute o cálculo McKee antes de exportar o PDF.');
+      return;
+    }
+
+    // Create PDF content
+    const pdfContent = `
+      RELATÓRIO DE CÁLCULO McKEE
+      ===========================
+      
+      PARÂMETROS DA CAIXA:
+      - Dimensões: ${inputs.length}×${inputs.width}×${inputs.height}mm
+      - Gramatura: ${inputs.paperWeight}g/m²
+      - Tipo de Flauta: ${fluteTypes[inputs.fluteType].description}
+      
+      CONDIÇÕES AMBIENTAIS:
+      - Umidade: ${inputs.humidity}%
+      - Temperatura: ${inputs.temperature}°C
+      - Tempo de Armazenamento: ${inputs.storageTime} dias
+      - Tipo de Carga: ${inputs.loadType}
+      - Fator de Segurança: ${inputs.safetyFactor}x
+      
+      RESULTADOS:
+      - ECT Ajustado: ${results.ect} N⋅m/m
+      - BCT: ${results.bct} N
+      - Resistência ao Empilhamento: ${results.stackingStrength} N
+      - Resistência à Compressão: ${results.compressionStrength} N
+      - Margem de Segurança: ${results.safetyMargin}%
+      
+      AVALIAÇÃO: ${results.recommendation}
+      Status: ${results.status.toUpperCase()}
+      
+      Data do Cálculo: ${new Date().toLocaleDateString('pt-BR')}
+    `;
+
+    // Create and download blob
+    const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-mckee-${inputs.length}x${inputs.width}x${inputs.height}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast('success', 'PDF Exportado', 'Relatório McKee foi baixado com sucesso.');
+  };
+
+  const handleCreateQuote = () => {
+    if (!results) {
+      showToast('warning', 'Cálculo necessário', 'Execute o cálculo McKee antes de criar uma cotação.');
+      return;
+    }
+
+    // Navigate to advanced quote page with pre-filled data
+    const quoteData = {
+      length: inputs.length,
+      width: inputs.width,
+      height: inputs.height,
+      corrugatedType: inputs.fluteType === 'BC' ? 'BC' : 'C',
+      gramatura: inputs.paperWeight,
+      resistanceLevel: results.status === 'safe' ? 'high' : results.status === 'warning' ? 'medium' : 'light',
+      mckeeResults: results
+    };
+    
+    // Store data in localStorage for the quote page
+    localStorage.setItem('mckeeQuoteData', JSON.stringify(quoteData));
+    
+    showToast('success', 'Redirecionando', 'Criando orçamento com base nos cálculos McKee...');
+    
+    setTimeout(() => {
+      router.push('/comercial/orcamento-avancado');
+    }, 1500);
   };
 
   return (
@@ -401,15 +504,24 @@ export default function McKeePage() {
                 <div className="card-content">
                   <h4 className="font-medium text-gray-900 mb-3">Ações Rápidas</h4>
                   <div className="space-y-2">
-                    <button className="w-full btn-outline text-sm py-2">
+                    <button 
+                      onClick={handle3DView}
+                      className="w-full btn-outline text-sm py-2"
+                    >
                       <CubeIcon className="w-4 h-4 mr-2" />
                       Ver em 3D
                     </button>
-                    <button className="w-full btn-outline text-sm py-2">
+                    <button 
+                      onClick={handleExportPDF}
+                      className="w-full btn-outline text-sm py-2"
+                    >
                       <DocumentTextIcon className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </button>
-                    <button className="w-full btn-primary text-sm py-2">
+                    <button 
+                      onClick={handleCreateQuote}
+                      className="w-full btn-primary text-sm py-2"
+                    >
                       <ChartBarIcon className="w-4 h-4 mr-2" />
                       Criar Cotação
                     </button>
@@ -431,6 +543,111 @@ export default function McKeePage() {
           )}
         </div>
       </div>
+
+      {/* 3D Visualization Modal */}
+      <Modal 
+        isOpen={is3DModalOpen} 
+        onClose={() => setIs3DModalOpen(false)}
+        title="Visualização 3D da Caixa"
+        size="xl"
+      >
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-8 text-center">
+            <div className="mb-6">
+              <CubeIcon className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Visualização 3D</h3>
+              <p className="text-gray-600">Representação tridimensional da caixa calculada</p>
+            </div>
+            
+            {/* 3D Box Representation */}
+            <div className="relative mx-auto" style={{ width: '300px', height: '200px' }}>
+              <div 
+                className="absolute border-2 border-blue-600 bg-blue-100 bg-opacity-50"
+                style={{
+                  width: '200px',
+                  height: '150px',
+                  left: '50px',
+                  top: '25px',
+                  transform: 'perspective(300px) rotateX(-10deg) rotateY(15deg)',
+                  transformStyle: 'preserve-3d'
+                }}
+              >
+                {/* Front face */}
+                <div 
+                  className="absolute border border-blue-400 bg-blue-200 bg-opacity-30"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    transform: `translateZ(${inputs.height * 0.2}px)`
+                  }}
+                />
+                
+                {/* Top face */}
+                <div 
+                  className="absolute border border-blue-400 bg-blue-300 bg-opacity-40"
+                  style={{
+                    width: '100%',
+                    height: `${inputs.height * 0.2}px`,
+                    transform: 'rotateX(90deg)',
+                    transformOrigin: 'top'
+                  }}
+                />
+                
+                {/* Right face */}
+                <div 
+                  className="absolute border border-blue-400 bg-blue-250 bg-opacity-35"
+                  style={{
+                    width: `${inputs.height * 0.2}px`,
+                    height: '100%',
+                    right: `-${inputs.height * 0.2}px`,
+                    transform: 'rotateY(90deg)',
+                    transformOrigin: 'right'
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Dimensions Display */}
+            <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-gray-600">Comprimento</div>
+                <div className="font-semibold text-blue-600">{inputs.length}mm</div>
+              </div>
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-gray-600">Largura</div>
+                <div className="font-semibold text-blue-600">{inputs.width}mm</div>
+              </div>
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-gray-600">Altura</div>
+                <div className="font-semibold text-blue-600">{inputs.height}mm</div>
+              </div>
+            </div>
+            
+            {results && (
+              <div className="mt-4 bg-white rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-2">Resistência Calculada</div>
+                <div className="font-semibold text-lg text-green-600">
+                  {results.compressionStrength}N
+                </div>
+                <div className="text-xs text-gray-500">Fator de Segurança: {inputs.safetyFactor}x</div>
+              </div>
+            )}
+          </div>
+          
+          <div className="text-center text-sm text-gray-500">
+            💡 Visualização simplificada para demonstração das proporções da caixa
+          </div>
+        </div>
+      </Modal>
+
+      {/* Toast */}
+      <Toast
+        isOpen={toast.isOpen}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
     </div>
   );
 }
