@@ -14,6 +14,20 @@ import {
 } from '@heroicons/react/24/outline';
 import Modal from '@/components/ui/Modal';
 import Toast from '@/components/ui/Toast';
+import dynamic from 'next/dynamic';
+
+// Dynamically import 3D component to avoid SSR issues
+const Box3D = dynamic(() => import('@/components/3d/Box3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Carregando visualização 3D...</p>
+      </div>
+    </div>
+  )
+});
 
 interface McKeeInputs {
   length: number;
@@ -552,90 +566,85 @@ export default function McKeePage() {
         size="xl"
       >
         <div className="space-y-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-8 text-center">
-            <div className="mb-6">
-              <CubeIcon className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Visualização 3D</h3>
-              <p className="text-gray-600">Representação tridimensional da caixa calculada</p>
+          <div className="mb-4 text-center">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Visualização 3D Interativa</h3>
+            <p className="text-gray-600">Use o mouse para rotacionar, zoom e navegar pela caixa</p>
+          </div>
+          
+          {/* 3D Box Component */}
+          <Box3D 
+            length={inputs.length}
+            width={inputs.width}
+            height={inputs.height}
+            thickness={fluteTypes[inputs.fluteType].thickness}
+            fluteType={inputs.fluteType}
+            isOpen={false}
+          />
+          
+          {/* Control Instructions */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-2">Controles:</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+              <div>🖱️ <strong>Clique e arraste:</strong> Rotacionar</div>
+              <div>🔍 <strong>Scroll:</strong> Zoom in/out</div>
+              <div>👆 <strong>Clique direito:</strong> Mover</div>
+              <div>📱 <strong>Touch:</strong> Gestos nativos</div>
             </div>
-            
-            {/* 3D Box Representation */}
-            <div className="relative mx-auto" style={{ width: '300px', height: '200px' }}>
-              <div 
-                className="absolute border-2 border-blue-600 bg-blue-100 bg-opacity-50"
-                style={{
-                  width: '200px',
-                  height: '150px',
-                  left: '50px',
-                  top: '25px',
-                  transform: 'perspective(300px) rotateX(-10deg) rotateY(15deg)',
-                  transformStyle: 'preserve-3d'
-                }}
-              >
-                {/* Front face */}
-                <div 
-                  className="absolute border border-blue-400 bg-blue-200 bg-opacity-30"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    transform: `translateZ(${inputs.height * 0.2}px)`
-                  }}
-                />
-                
-                {/* Top face */}
-                <div 
-                  className="absolute border border-blue-400 bg-blue-300 bg-opacity-40"
-                  style={{
-                    width: '100%',
-                    height: `${inputs.height * 0.2}px`,
-                    transform: 'rotateX(90deg)',
-                    transformOrigin: 'top'
-                  }}
-                />
-                
-                {/* Right face */}
-                <div 
-                  className="absolute border border-blue-400 bg-blue-250 bg-opacity-35"
-                  style={{
-                    width: `${inputs.height * 0.2}px`,
-                    height: '100%',
-                    right: `-${inputs.height * 0.2}px`,
-                    transform: 'rotateY(90deg)',
-                    transformOrigin: 'right'
-                  }}
-                />
-              </div>
+          </div>
+          
+          {/* Dimensions Display */}
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="bg-white border rounded-lg p-3 text-center">
+              <div className="text-gray-600">Comprimento</div>
+              <div className="font-semibold text-blue-600 text-lg">{inputs.length}mm</div>
             </div>
-            
-            {/* Dimensions Display */}
-            <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
-              <div className="bg-white rounded-lg p-3">
-                <div className="text-gray-600">Comprimento</div>
-                <div className="font-semibold text-blue-600">{inputs.length}mm</div>
-              </div>
-              <div className="bg-white rounded-lg p-3">
-                <div className="text-gray-600">Largura</div>
-                <div className="font-semibold text-blue-600">{inputs.width}mm</div>
-              </div>
-              <div className="bg-white rounded-lg p-3">
-                <div className="text-gray-600">Altura</div>
-                <div className="font-semibold text-blue-600">{inputs.height}mm</div>
+            <div className="bg-white border rounded-lg p-3 text-center">
+              <div className="text-gray-600">Largura</div>
+              <div className="font-semibold text-blue-600 text-lg">{inputs.width}mm</div>
+            </div>
+            <div className="bg-white border rounded-lg p-3 text-center">
+              <div className="text-gray-600">Altura</div>
+              <div className="font-semibold text-blue-600 text-lg">{inputs.height}mm</div>
+            </div>
+          </div>
+          
+          {/* Material and Results Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h4 className="font-medium text-amber-900 mb-2">Material</h4>
+              <div className="text-sm text-amber-800">
+                <div>Tipo: {fluteTypes[inputs.fluteType].description}</div>
+                <div>Espessura: {fluteTypes[inputs.fluteType].thickness}mm</div>
+                <div>Gramatura: {inputs.paperWeight}g/m²</div>
               </div>
             </div>
             
             {results && (
-              <div className="mt-4 bg-white rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-2">Resistência Calculada</div>
-                <div className="font-semibold text-lg text-green-600">
-                  {results.compressionStrength}N
+              <div className={`border rounded-lg p-4 ${
+                results.status === 'safe' ? 'bg-green-50 border-green-200' :
+                results.status === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                'bg-red-50 border-red-200'
+              }`}>
+                <h4 className={`font-medium mb-2 ${
+                  results.status === 'safe' ? 'text-green-900' :
+                  results.status === 'warning' ? 'text-yellow-900' :
+                  'text-red-900'
+                }`}>Resistência McKee</h4>
+                <div className={`text-sm ${
+                  results.status === 'safe' ? 'text-green-800' :
+                  results.status === 'warning' ? 'text-yellow-800' :
+                  'text-red-800'
+                }`}>
+                  <div>BCT: {results.bct}N</div>
+                  <div>Compressão: {results.compressionStrength}N</div>
+                  <div>Segurança: {results.safetyMargin}%</div>
                 </div>
-                <div className="text-xs text-gray-500">Fator de Segurança: {inputs.safetyFactor}x</div>
               </div>
             )}
           </div>
           
-          <div className="text-center text-sm text-gray-500">
-            💡 Visualização simplificada para demonstração das proporções da caixa
+          <div className="text-center text-sm text-gray-500 border-t pt-4">
+            🎯 Modelo 3D gerado automaticamente com base nos cálculos McKee
           </div>
         </div>
       </Modal>
